@@ -5,11 +5,20 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+library(caret)
+library(corrplot)
+library(Hmisc)
+library(rpart)
+library(randomForest)
 ```
 
 ## PML Final Project
 
-First we download the relevant files
+First we download the relevant files - these are sourced from the following work:
+
+Velloso, E.; Bulling, A.; Gellersen, H.; Ugulino, W.; Fuks, H. “Qualitative Activity Recognition of Weight Lifting Exercises. Proceedings of 4th International Conference in Cooperation with SIGCHI (Augmented Human ’13)”. Stuttgart, Germany: ACM SIGCHI, 2013.
+
+Our goal is to "predict the manner in which they did the exercise. This is the "classe" variable in the training set. You may use any of the other variables to predict with. You should create a report describing how you built your model, how you used cross validation, what you think the expected out of sample error is, and why you made the choices you did. You will also use your prediction model to predict 20 different test cases."
 
 ```{r files}
 url1 <- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv"
@@ -22,25 +31,55 @@ testing <- read.csv("test.csv")
 
 ## Executive Summary
 
-You can also embed plots, for example:
+The data appears to have a large number of predictors that are largely zero or NA, we remove these in both the training and the test sets to speed up the processing and training. Using the Caret nearZeroVar function removes 60 columns, and then removing the columns with over 90% NA values gets us to 59 predictors. This seems to be a good net reduction. We also create an additional cross validation set with 80% of the training data. This leaves us with the 20 final prediction tests in the testing set.
 
-```{r analysis}
-
-
+```{r cleaning}
+set.seed(123)
+rmindex = nearZeroVar(training)
+training2 = training[,-rmindex]
+testing2 = testing[,-rmindex]
+training3 = training2[,-which(colMeans(is.na(training2))>.9)]
+testing3 = testing2[,-which(colMeans(is.na(training2))>.9)]
+#create the cross validation split from the training data
+inTrain = createDataPartition(training3$classe, p=0.8, list=FALSE)
+training4 = training3[inTrain,]
+crossval4 = training3[-inTrain,]
+dim(training4)
+dim(crossval4)
+dim(testing3)
 ```
 
-Note 
+We then create a Correlation Matrix while removing the non-numerical columns remaining to look at the relationships between the predictors. The factor variables are in columns 2, 5, and 59.The size of the training set makes a correlation matrix hard to visualize, so we use a heat map.
 
-```{r manipulation}
+```{r explore}
+training4num  = training4[,-c(2,5,59)]
+col<- colorRampPalette(c("blue", "white", "red"))(20)
+res = cor(training4num)
+heatmap(x = res, col = col, symm = TRUE)
+```
+
+We now test and attempt cross validation with a few different types of models to predict the classe factor. We preprocess with center and scaling.
+
+```{r model1gbm}
 
 
 ```
 
 Note
 
-```{r output}
+```{r model2}
 
 
 ```
 
 Note
+
+```{r model3rf}
+
+
+```
+
+Note
+
+
+
