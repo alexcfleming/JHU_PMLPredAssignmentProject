@@ -36,8 +36,10 @@ The data appears to have a large number of predictors that are largely zero or N
 ```{r cleaning}
 set.seed(123)
 rmindex = nearZeroVar(training)
+#remove near zero predictors
 training2 = training[,-rmindex]
 testing2 = testing[,-rmindex]
+#remove columns where there are more than 90% NA values
 training3 = training2[,-which(colMeans(is.na(training2))>.9)]
 testing3 = testing2[,-which(colMeans(is.na(training2))>.9)]
 #create the cross validation split from the training data
@@ -47,6 +49,9 @@ crossval4 = training3[-inTrain,]
 dim(training4)
 dim(crossval4)
 dim(testing3)
+#we also remove the problem.id column from the final testing set
+testing4 = testing3[,-59]
+dim(testing4)
 ```
 
 We then create a Correlation Matrix while removing the non-numerical columns remaining to look at the relationships between the predictors. The factor variables are in columns 2, 5, and 59.The size of the training set makes a correlation matrix hard to visualize, so we use a heat map.
@@ -58,28 +63,43 @@ res = cor(training4num)
 heatmap(x = res, col = col, symm = TRUE)
 ```
 
-We now test and attempt cross validation with a few different types of models to predict the classe factor. We preprocess with center and scaling.
+There is a high amount of correlation between clusters of variables. We now test and attempt cross validation with a few different types of models to predict the classe factor. We preprocess with center and scaling.
 
-```{r model1gbm}
-
-
+```{r model1}
+set.seed(123)
+conGBM = trainControl(method="repeatedcv", number=5, repeats=1)
+mod1 = train(classe~., data=training4, method="gbm", trControl=conGBM, preProcess=c("center", "scale"), verbose=FALSE)
+mod1$finalModel
+predict1 = predict(mod1, crossval4)
+confusionMatrix(crossval4$classe, predict1)
 ```
 
-Note
+We see with a gradient boosting with trees an accuracy of .9995 on the cross validation set, which seems like a pretty good start. Let's try a tree based model with preprocessing.
 
 ```{r model2}
-
-
+set.seed(123)
+mod2 = train(classe~., data=training4, method="rpart", preProcess=c("center", "scale"))
+mod2$finalModel
+predict2 = predict(mod2, crossval4)
+confusionMatrix(crossval4$classe, predict2)
 ```
 
-Note
+The basic tree model shows very interesting but much worse results, with accuracy on the cross validation set dropping to .6617. Let's attempt one more model with cross validation, and then run a final evaluation on the testing set.
 
 ```{r model3rf}
+set.seed(123)
+mod3 = randomForest(classe~., data=training4, importance=TRUE, proximity=TRUE)
+mod3
+predict3 = predict(mod3, crossval4)
+confusionMatrix(crossval4$classe, predict3)
+```
+
+This is pretty imprssive, an accuracy of 1, which means perfect results in the cross validation set, which makes me concerned about potential overfitting. We now use our best model, which was the RandomForest application, to do the prediction on the test cases and get a final accuracy.
+
+```{r testpred}
+
+
+#We take the predictions and generate the results file for submission
 
 
 ```
-
-Note
-
-
-
