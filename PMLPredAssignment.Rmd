@@ -4,12 +4,15 @@ output: html_document
 ---
 
 ```{r setup, include=FALSE}
+library(knitr)
 knitr::opts_chunk$set(echo = TRUE)
 library(caret)
 library(corrplot)
 library(Hmisc)
 library(rpart)
 library(randomForest)
+library(e1071)
+library(gbm)
 ```
 
 ## PML Final Project
@@ -41,7 +44,8 @@ training2 = training[,-rmindex]
 testing2 = testing[,-rmindex]
 #remove columns where there are more than 90% NA values
 training3 = training2[,-which(colMeans(is.na(training2))>.9)]
-testing3 = testing2[,-which(colMeans(is.na(training2))>.9)]
+testing3 = testing2[, colnames(testing2) %in% colnames(training3)]
+#This step also removes the problem id field from the final quiz testing set
 #create the cross validation split from the training data
 inTrain = createDataPartition(training3$classe, p=0.8, list=FALSE)
 training4 = training3[inTrain,]
@@ -49,9 +53,6 @@ crossval4 = training3[-inTrain,]
 dim(training4)
 dim(crossval4)
 dim(testing3)
-#we also remove the problem.id column from the final testing set
-testing4 = testing3[,-59]
-dim(testing4)
 ```
 
 We then create a Correlation Matrix while removing the non-numerical columns remaining to look at the relationships between the predictors. The factor variables are in columns 2, 5, and 59.The size of the training set makes a correlation matrix hard to visualize, so we use a heat map.
@@ -74,7 +75,7 @@ predict1 = predict(mod1, crossval4)
 confusionMatrix(crossval4$classe, predict1)
 ```
 
-We see with a gradient boosting with trees an accuracy of .9995 on the cross validation set, which seems like a pretty good start. Let's try a tree based model with preprocessing.
+We see with a gradient boosting with trees an accuracy of 1 on the cross validation set, which seems like a pretty good start. Let's try a tree based model with preprocessing.
 
 ```{r model2}
 set.seed(123)
@@ -88,18 +89,29 @@ The basic tree model shows very interesting but much worse results, with accurac
 
 ```{r model3rf}
 set.seed(123)
-mod3 = randomForest(classe~., data=training4, importance=TRUE, proximity=TRUE)
-mod3
+mod3 = train(classe~., data=training4, method="rf")
+mod3$finalModel
 predict3 = predict(mod3, crossval4)
 confusionMatrix(crossval4$classe, predict3)
 ```
 
 This is pretty imprssive, an accuracy of 1, which means perfect results in the cross validation set, which makes me concerned about potential overfitting. We now use our best model, which was the RandomForest application, to do the prediction on the test cases and get a final accuracy.
 
+We summarize our 3 results for training and cross validation:
+GBM - Accuracy: 100% Sensitivity: 1 Specificity: 1
+Rpart Tree Based Model - Accuracy: 66%  Sensitivity: .35 (lowest) Specificity: .82 (lowest)
+Random Forest Model - Accuracy: 100% Sensitivity: 1 Specificity: 1
+
+Therefore we use the random forest model to predict on the final test set provided, though we could easily use the GBM model as well:
+
 ```{r testpred}
-
-
-#We take the predictions and generate the results file for submission
-
-
+predictfinal = predict(mod3, newdata=testing3, type="raw")
+predictfinal
 ```
+
+My final prediction here is very confusing, since my results on the final testing set do not match the quiz answers. I will submit in the quiz, however, since all else seems correct here with the results for the previous training. I have beaten my head on this for days and cannot figure out what I am doing wrong.
+
+I look forward to the comments of my classmates.
+
+Alex Fleming
+December 28th, 2018
