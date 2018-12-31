@@ -16,6 +16,7 @@ library(gbm)
 ```
 
 ## PML Final Project
+Alex C. Fleming
 
 First we download the relevant files - these are sourced from the following work:
 
@@ -39,9 +40,11 @@ The data appears to have a large number of predictors that are largely zero or N
 ```{r cleaning}
 set.seed(123)
 rmindex = nearZeroVar(training)
-#remove near zero predictors
+#remove near zero predictors and the labeling columns 1-5
 training2 = training[,-rmindex]
+training2 = training2[,-c(1:5)]
 testing2 = testing[,-rmindex]
+testing2 = testing2[,-c(1:5)]
 #remove columns where there are more than 90% NA values
 training3 = training2[,-which(colMeans(is.na(training2))>.9)]
 testing3 = testing2[, colnames(testing2) %in% colnames(training3)]
@@ -58,7 +61,7 @@ dim(testing3)
 We then create a Correlation Matrix while removing the non-numerical columns remaining to look at the relationships between the predictors. The factor variables are in columns 2, 5, and 59.The size of the training set makes a correlation matrix hard to visualize, so we use a heat map.
 
 ```{r explore}
-training4num  = training4[,-c(2,5,59)]
+training4num  = training4[,-54]
 col<- colorRampPalette(c("blue", "white", "red"))(20)
 res = cor(training4num)
 heatmap(x = res, col = col, symm = TRUE)
@@ -98,20 +101,20 @@ confusionMatrix(crossval4$classe, predict3)
 This is pretty imprssive, an accuracy of 1, which means perfect results in the cross validation set, which makes me concerned about potential overfitting. We now use our best model, which was the RandomForest application, to do the prediction on the test cases and get a final accuracy.
 
 We summarize our 3 results for training and cross validation:
-GBM - Accuracy: 100% Sensitivity: 1 Specificity: 1
+GBM - Accuracy: 98% Sensitivity: 1 Specificity: 1
 Rpart Tree Based Model - Accuracy: 66%  Sensitivity: .35 (lowest) Specificity: .82 (lowest)
 Random Forest Model - Accuracy: 100% Sensitivity: 1 Specificity: 1
 
-Therefore we use the random forest model to predict on the final test set provided, though we could easily use the GBM model as well:
+Therefore we use the random forest model to predict on the final test set provided, though we could easily use the GBM model as well. Out of sample error should be very small (1-Accuracy, so under .02 for the RF and GBM models)
 
 ```{r testpred}
 predictfinal = predict(mod3, newdata=testing3, type="raw")
 predictfinal
 ```
 
-My final prediction here is very confusing, since my results on the final testing set do not match the quiz answers. I will submit in the quiz, however, since all else seems correct here with the results for the previous training. I have beaten my head on this for days and cannot figure out what I am doing wrong.
+The final quiz predictions are 100% correct.
 
 I look forward to the comments of my classmates.
 
 Alex Fleming
-December 28th, 2018
+December 30th, 2018
